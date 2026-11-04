@@ -1,0 +1,18 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { AdminMessage, ConfirmField, StatusBadge } from "@/components/admin/ui";
+import { PageHeading, StudentCard } from "@/components/student/ui";
+import { setAdminExerciseStatusAction, updateAdminExerciseAction } from "@/lib/admin/actions";
+import { getExercise } from "@/lib/admin/data";
+import { requireRole } from "@/lib/auth/guard";
+import { muscleGroups } from "@/lib/instructor/labels";
+
+export default async function AdminExerciseDetail({ params, searchParams }: { params: Promise<{ exerciseId: string }>; searchParams: Promise<{ erro?: string; salvo?: string }> }) {
+  await requireRole("admin"); const { exerciseId } = await params; const current = await getExercise(exerciseId); if (!current) notFound();
+  const state = await searchParams; const { exercise, referenceCount } = current;
+  return <><Link className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-nac-cyan" href="/administracao/exercicios"><ArrowLeft size={16} /> Exercícios</Link><PageHeading eyebrow="Catálogo NAC" title={exercise.name} description="Registros prescritos mantêm seus dados históricos. O arquivamento não apaga fichas ou sessões." /><AdminMessage error={state.erro} saved={state.salvo} />
+    <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]"><StudentCard><div className="flex items-center justify-between gap-3"><h2 className="text-lg font-black">Dados do exercício</h2><StatusBadge active={exercise.is_active} activeLabel="Ativo" inactiveLabel="Arquivado" /></div><p className="mt-3 text-sm text-nac-muted">{referenceCount} prescrições utilizam este exercício. {referenceCount ? "Os campos de conteúdo estão bloqueados para preservar o histórico." : "O conteúdo pode ser editado."}</p><form action={updateAdminExerciseAction} className="mt-5 space-y-3"><input name="exerciseId" type="hidden" value={exercise.id} /><label className="block text-sm font-semibold">Nome<input className="form-input mt-2" defaultValue={exercise.name} disabled={!!referenceCount} maxLength={160} minLength={2} name="name" required /></label><label className="block text-sm font-semibold">Grupo muscular<select className="form-input mt-2" defaultValue={exercise.muscle_group} disabled={!!referenceCount} name="muscleGroup">{muscleGroups.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className="block text-sm font-semibold">Descrição<textarea className="form-input mt-2 min-h-20 py-3" defaultValue={exercise.description || ""} disabled={!!referenceCount} maxLength={4000} name="description" /></label><label className="block text-sm font-semibold">Instruções<textarea className="form-input mt-2 min-h-24 py-3" defaultValue={exercise.instructions || ""} disabled={!!referenceCount} maxLength={4000} name="instructions" /></label>{!referenceCount && <button className="button-primary" type="submit">Salvar alterações</button>}</form></StudentCard>
+    <StudentCard><h2 className="text-lg font-black">Disponibilidade</h2><p className="mt-2 text-sm text-nac-muted">{exercise.visibility === "academy" ? "Exercício da academia" : "Exercício criado por professor"}. Arquivar impede novas seleções no catálogo, sem excluir prescrições existentes.</p><form action={setAdminExerciseStatusAction} className="mt-5 space-y-3"><input name="exerciseId" type="hidden" value={exercise.id} /><ConfirmField label={exercise.is_active ? "Confirmo o arquivamento deste exercício." : "Confirmo a restauração deste exercício."} /><button className="button-secondary" type="submit">{exercise.is_active ? "Arquivar exercício" : "Restaurar exercício"}</button></form></StudentCard></div>
+  </>;
+}

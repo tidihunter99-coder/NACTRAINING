@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorPage({ reset }: { error: Error; reset: () => void }) { return <div className="mx-auto max-w-xl rounded-2xl border border-red-400/25 bg-nac-deep p-6 text-white"><h1 className="text-xl font-bold">Não foi possível carregar o painel</h1><p className="mt-2 text-sm text-nac-muted">Verifique a conexão e tente novamente. Os dados já salvos permanecem no banco.</p><button className="button-primary mt-5" onClick={reset} type="button">Tentar novamente</button></div>; }

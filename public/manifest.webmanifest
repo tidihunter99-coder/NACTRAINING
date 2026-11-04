@@ -1,0 +1,10 @@
+{
+  "name": "NAC TRAINING",
+  "short_name": "NAC Training",
+  "description": "Seu treino. Sua evolução.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07172B",
+  "theme_color": "#07172B"
+}

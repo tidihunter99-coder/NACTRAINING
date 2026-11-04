@@ -1,0 +1,10 @@
+domain_tables|10
+foreign_keys|16
+indexes|30
+triggers|20
+functions|38
+policies|31
+rls_domain_tables|10
+migrations|14
+remaining_users|0
+remaining_audit|0

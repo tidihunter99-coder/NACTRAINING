@@ -1,0 +1,9 @@
+Warning: --local isn't needed (local is the default) and will be removed in v4
+Target: local stack (127.0.0.1:54322)
+psql:/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_inactive_rls_test.sql:4: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_inactive_rls_test.sql .. ok
+psql:/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_rls_test.sql:7: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_rls_test.sql ........... ok
+All tests successful.
+Files=2, Tests=38,  1 wallclock secs ( 0.03 usr  0.01 sys +  0.01 cusr  0.01 csys =  0.06 CPU)
+Result: PASS

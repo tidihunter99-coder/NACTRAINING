@@ -1,0 +1,2 @@
+"use client";
+export default function Error({ reset }: { reset: () => void }) { return <div className="mx-auto max-w-xl px-4 py-16 text-center text-white"><h1 className="text-2xl font-black">Não foi possível carregar a administração</h1><p className="mt-3 text-nac-muted">Confira a conexão local e tente novamente.</p><button className="button-primary mt-6" onClick={reset} type="button">Tentar novamente</button></div>; }

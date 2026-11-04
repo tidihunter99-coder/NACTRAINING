@@ -1,0 +1,10 @@
+import { dateBR, decimalBR } from "@/lib/student/format";
+
+export function TrendChart({ points, label, unit }: { points: { date: string; value: number }[]; label: string; unit: string }) {
+  if (!points.length) return <p className="text-sm text-nac-muted">Nenhum registro disponível para este gráfico.</p>;
+  const min = Math.min(...points.map((point) => point.value));
+  const max = Math.max(...points.map((point) => point.value));
+  const range = max - min || 1;
+  const coords = points.map((point, index) => ({ x: points.length === 1 ? 50 : 7 + index / (points.length - 1) * 86, y: 78 - (point.value - min) / range * 58, ...point }));
+  return <div><div className="mb-3 grid grid-cols-3 gap-2 border-b border-white/10 pb-4 text-sm"><div><p className="text-nac-muted">Primeiro</p><p className="font-bold">{decimalBR(points[0].value)} {unit}</p></div><div><p className="text-nac-muted">Mais recente</p><p className="font-bold">{decimalBR(points.at(-1)!.value)} {unit}</p></div><div><p className="text-nac-muted">Diferença</p><p className="font-bold">{points.length > 1 ? `${points.at(-1)!.value - points[0].value > 0 ? "+" : ""}${decimalBR(points.at(-1)!.value - points[0].value)} ${unit}` : "—"}</p></div></div><svg aria-label={`${label}: ${points.length} registros reais`} className="h-48 w-full" preserveAspectRatio="none" role="img" viewBox="0 0 100 100"><line stroke="#334155" strokeWidth="0.5" x1="0" x2="100" y1="78" y2="78" /><line stroke="#334155" strokeWidth="0.5" x1="0" x2="100" y1="49" y2="49" /><line stroke="#334155" strokeWidth="0.5" x1="0" x2="100" y1="20" y2="20" />{coords.length > 1 && <polyline fill="none" points={coords.map((point) => `${point.x},${point.y}`).join(" ")} stroke="#087CFF" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />}{coords.map((point, index) => <circle cx={point.x} cy={point.y} fill="#00B8FF" key={`${point.date}-${index}`} r="1.8"><title>{dateBR(point.date)}: {decimalBR(point.value)} {unit}</title></circle>)}</svg><div className="flex justify-between text-xs text-nac-muted"><span>{dateBR(points[0].date)}</span><span>{dateBR(points.at(-1)!.date)}</span></div></div>;
+}

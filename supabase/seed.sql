@@ -1,0 +1,2 @@
+-- No production or demonstration data is seeded. Tests create and remove
+-- fictional accounts in an isolated local Supabase stack.

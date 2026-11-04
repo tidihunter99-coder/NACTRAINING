@@ -1,0 +1,19 @@
+Warning: --local isn't needed (local is the default) and will be removed in v4
+Target: local stack (127.0.0.1:54322)
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_admin_flow_test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_admin_flow_test.sql ............. ok
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_first_admin_bootstrap_test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_first_admin_bootstrap_test.sql .. ok
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_inactive_rls_test.sql:4: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_inactive_rls_test.sql ........... ok
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_instructor_editor_test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_instructor_editor_test.sql ...... ok
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_instructor_flow_test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_instructor_flow_test.sql ........ ok
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_rls_test.sql:7: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_rls_test.sql .................... ok
+psql:/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_student_flow_test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/.mission09-clean/supabase/tests/nac_student_flow_test.sql ........... ok
+All tests successful.
+Files=7, Tests=125,  1 wallclock secs ( 0.07 usr  0.01 sys +  0.06 cusr  0.04 csys =  0.18 CPU)
+Result: PASS

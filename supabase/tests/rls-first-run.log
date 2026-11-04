@@ -1,0 +1,55 @@
+Warning: --local isn't needed (local is the default) and will be removed in v4
+Target: local stack (127.0.0.1:54322)
+3.36: Pulling from supabase/pg_prove
+4f4fb700ef54: Pulling fs layer
+06d62d0de6d7: Pulling fs layer
+dcccee43ad5d: Pulling fs layer
+a22cb17b3b93: Pulling fs layer
+4f4fb700ef54: Already exists
+4f4fb700ef54: Pull complete
+a008cf086da5: Download complete
+a22cb17b3b93: Download complete
+dcccee43ad5d: Download complete
+dcccee43ad5d: Pull complete
+06d62d0de6d7: Download complete
+06d62d0de6d7: Pull complete
+a22cb17b3b93: Pull complete
+Digest: sha256:eda7c5e68719e9c8287e78c017118407b48df904a51c935f5ab6098b8c0bc6bc
+Status: Downloaded newer image for public.ecr.aws/supabase/pg_prove:3.36
+public.ecr.aws/supabase/pg_prove:3.36
+psql:/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_rls_test.sql:7: NOTICE:  extension "pgtap" already exists, skipping
+/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_rls_test.sql .. 
+# Failed test 4: "threw Student A cannot promote own role"
+#       caught: 42501: permission denied for table profiles
+#       wanted: an exception: Student A cannot promote own role
+# Failed test 8: "threw Student A cannot log a set in Student B session"
+#       caught: P0001: A set log exercise must belong to the workout session day
+#       wanted: an exception: Student A cannot log a set in Student B session
+# Failed test 9: "threw Student A cannot attach an exercise from another workout day"
+#       caught: P0001: A set log exercise must belong to the workout session day
+#       wanted: an exception: Student A cannot attach an exercise from another workout day
+# Failed test 11: "threw Student A cannot alter a completed session"
+#       caught: P0001: Completed or cancelled workout sessions are immutable
+#       wanted: an exception: Student A cannot alter a completed session
+# Failed test 13: "threw Student A cannot forge audit events"
+#       caught: 42501: permission denied for table audit_events
+#       wanted: an exception: Student A cannot forge audit events
+# Failed test 14: "threw Student A cannot delete audit events"
+#       caught: 42501: permission denied for table audit_events
+#       wanted: an exception: Student A cannot delete audit events
+# Failed test 18: "threw Instructor A cannot create a plan for unlinked Student B"
+#       caught: P0001: A workout plan must reference a student and an instructor
+#       wanted: an exception: Instructor A cannot create a plan for unlinked Student B
+# Failed test 19: "threw Instructor A cannot publish an academy-wide exercise"
+#       caught: 42501: new row violates row-level security policy for table "exercises"
+#       wanted: an exception: Instructor A cannot publish an academy-wide exercise
+# Looks like you failed 8 tests of 22
+Failed 8/22 subtests 
+
+Test Summary Report
+-------------------
+/Users/bangu/OneDrive/Documents/NAC/supabase/tests/nac_rls_test.sql (Wstat: 0 Tests: 22 Failed: 8)
+  Failed tests:  4, 8-9, 11, 13-14, 18-19
+Files=1, Tests=22,  0 wallclock secs ( 0.04 usr  0.00 sys +  0.01 cusr  0.00 csys =  0.05 CPU)
+Result: FAIL
+error running container: exit 1

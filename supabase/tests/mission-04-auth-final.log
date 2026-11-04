@@ -1,0 +1,18 @@
+PASS cadastro sem sessão antes da confirmação
+PASS login bloqueado antes da confirmação
+PASS confirmação de e-mail PKCE
+PASS perfil student criado pelo banco, apesar de metadata maliciosa
+PASS aluno não altera o próprio papel
+PASS logout
+PASS login correto, login incorreto e sessão persistida
+PASS recuperação, redefinição, senha antiga rejeitada e nova aceita
+PASS aluno autorizado, rotas de professor/admin bloqueadas e sessão persistida
+PASS sessão vencida com refresh inválido é rejeitada
+PASS inativo bloqueado e professor sem acesso administrativo
+PASS administrador local isolado por papel; perfil fictício restaurado para aluno
+PASS logout da sessão SSR
+PASS callback Next.js confirma e-mail e estabelece sessão SSR
+PASS callback Next.js de recuperação abre a página de nova senha
+PASS Server Action redefine senha e invalida a senha anterior
+PASS formulário de cadastro, confirmação e papel student imposto pelo banco
+AUTH_LOCAL_PASS

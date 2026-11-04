@@ -1,0 +1,1 @@
+export default function Loading() { return <div aria-label="Carregando dados do aluno" className="mx-auto max-w-7xl animate-pulse px-4 py-8"><div className="mb-6 h-10 w-56 rounded-xl bg-white/10" /><div className="grid gap-4 sm:grid-cols-3">{[1, 2, 3].map((item) => <div className="h-40 rounded-2xl bg-white/10" key={item} />)}</div></div>; }

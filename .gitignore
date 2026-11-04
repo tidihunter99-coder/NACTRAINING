@@ -1,0 +1,24 @@
+# Dependencies
+/node_modules
+
+# Next.js
+/.next
+/.next-auth-test
+/.next-instructor-test
+/.next-admin-test
+/.next-mission09-test
+/.mission09-clean
+/out
+
+# Environment files
+.env*.local
+.env
+
+# Local tooling
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*
+
+# Supabase CLI local state
+/supabase/.branches/
+/supabase/.temp/
