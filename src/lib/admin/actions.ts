@@ -6,6 +6,8 @@ import { requireRole } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getExercise, getProfile, getProfileByEmail, isUuid } from "@/lib/admin/data";
 import { muscleGroups } from "@/lib/instructor/labels";
+import { exerciseMediaBucket, privateMediaPath } from "@/lib/exercise-media";
+import { exerciseCoverage } from "@/lib/admin/exercise-coverage";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
 function fail(path: string, code: string): never { redirect(`${path}${path.includes("?") ? "&" : "?"}erro=${code}`); }
@@ -88,9 +90,51 @@ export async function updateAdminExerciseAction(form: FormData) {
   try { fields = exerciseFields(form); } catch { fail(path, "dados"); }
   const current = await getExercise(id);
   if (!current || current.referenceCount) fail(path, "historico");
-  const { error } = await (await db()).from("exercises").update(fields).eq("id", id);
+  const { error } = await (await db()).from("exercises").update({ ...fields, visual_review_status: "pending", media_rights_note: null, technical_reviewer: null, visual_reviewed_by: null, visual_reviewed_at: null }).eq("id", id);
   if (error) fail(path, "salvar");
   refresh(); revalidatePath(path);
+  redirect(`${path}?salvo=1`);
+}
+export async function updateAdminExerciseGuidanceAction(form: FormData) {
+  await requireRole("admin");
+  const id = value(form, "exerciseId");
+  if (!isUuid(id)) fail("/administracao/exercicios", "dados");
+  const path = `/administracao/exercicios/${id}`;
+  const tip = value(form, "coachingTip");
+  const mistakes = value(form, "commonMistakes");
+  if (tip.length > 2000 || mistakes.length > 4000) fail(path, "dados");
+  const { error } = await (await db()).from("exercises").update({ coaching_tip: tip || null, common_mistakes: mistakes || null, visual_review_status: "pending", media_rights_note: null, technical_reviewer: null, visual_reviewed_by: null, visual_reviewed_at: null }).eq("id", id);
+  if (error) fail(path, "salvar");
+  refresh(); revalidatePath(path); revalidatePath(`/aluno/exercicios/${id}`);
+  redirect(`${path}?salvo=1`);
+}
+export async function reviewAdminExerciseVisualAction(form: FormData) {
+  const admin = await requireRole("admin");
+  const id = value(form, "exerciseId");
+  if (!isUuid(id)) fail("/administracao/exercicios", "dados");
+  const path = `/administracao/exercicios/${id}`;
+  const decision = value(form, "decision");
+  if (decision !== "approved" && decision !== "pending") fail(path, "dados");
+  const current = await getExercise(id);
+  if (!current) fail(path, "exercicio");
+  const client = await db();
+  if (decision === "pending") {
+    const result = await client.from("exercises").update({ visual_review_status: "pending", media_rights_note: null, technical_reviewer: null, visual_reviewed_by: null, visual_reviewed_at: null }).eq("id", id);
+    if (result.error) fail(path, "revisao");
+  } else {
+    confirmed(form, path);
+    const rights = value(form, "mediaRightsNote");
+    const reviewer = value(form, "technicalReviewer");
+    const item = current.exercise;
+    const coverage = exerciseCoverage(item);
+    const paths = [privateMediaPath(item.image_url, item.id, "cover"), privateMediaPath(item.video_url, item.id, "demonstration"), privateMediaPath(item.anatomy_image_url, item.id, "anatomy")];
+    if (!rights || rights.length > 1000 || !reviewer || reviewer.length > 160 || coverage.missing.length > 0 || coverage.invalidUrls > 0 || coverage.unsupportedDemonstration || paths.some((mediaPath) => !mediaPath)) fail(path, "pendencias");
+    const stored = await Promise.all(paths.map((mediaPath) => client.storage.from(exerciseMediaBucket).download(mediaPath!)));
+    if (stored.some((file) => file.error || !file.data)) fail(path, "pendencias");
+    const result = await client.from("exercises").update({ visual_review_status: "approved", media_rights_note: rights, technical_reviewer: reviewer, visual_reviewed_by: admin.id, visual_reviewed_at: new Date().toISOString() }).eq("id", id);
+    if (result.error) fail(path, "revisao");
+  }
+  refresh(); revalidatePath(path); revalidatePath(`/aluno/exercicios/${id}`);
   redirect(`${path}?salvo=1`);
 }
 export async function setAdminExerciseStatusAction(form: FormData) {

@@ -7,7 +7,17 @@
 /.next-instructor-test
 /.next-admin-test
 /.next-mission09-test
+/.next-master-test
 /.mission09-clean
+/.next-design-review
+/.next-mission11-review
+/.next-mission11-audit
+/.next-mission091-review
+/.next-mission091-final
+/.next-mission092-review
+/.next-mission092-final
+/.next-mission092-release
+/.next-mission*/
 /out
 
 # Environment files
@@ -19,6 +29,22 @@
 .DS_Store
 npm-debug.log*
 
+# Local validation evidence may include screenshots, logs, and exported metadata.
+/docs/evidence/*.log
+/docs/evidence/*.png
+/docs/evidence/*.csv
+/docs/evidence/*.json
+
 # Supabase CLI local state
 /supabase/.branches/
 /supabase/.temp/
+
+# Recovery artifacts must remain outside version control.
+/backups/
+*.dump
+*.backup
+*.sql.gz
+*.pgpass
+
+# Authenticated remote-audit exports contain security metadata. Keep them local.
+/supabase/audit/mission15-remote-results/

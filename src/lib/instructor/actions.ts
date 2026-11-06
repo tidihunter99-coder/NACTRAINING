@@ -206,6 +206,7 @@ export async function createExerciseAction(form: FormData) {
     name = boundedText(form, "name", 160, 2);
     description = boundedText(form, "description", 4000);
     instructions = boundedText(form, "instructions", 4000);
+    if (["imageUrl", "videoUrl", "anatomyImageUrl"].some((field) => value(form, field))) throw new Error("A associação de mídia requer administrador");
     if (!groups.includes(group)) throw new Error("Grupo inválido");
   } catch { fail("/professor/exercicios", "dados"); }
   const db = await supabase();

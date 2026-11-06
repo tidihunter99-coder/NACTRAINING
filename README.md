@@ -37,4 +37,4 @@ Os fluxos end-to-end locais são `npm run test:student-local`, `npm run test:ins
 
 ## Estado de implantação
 
-As 14 migrations foram reproduzidas do zero em uma pilha Supabase descartável. A aplicação e as sete suítes pgTAP passaram localmente. A auditoria somente de leitura do projeto Supabase NAC existente identificou diferenças de esquema; nenhuma migration remota foi aplicada. Backup recuperável, SMTP, URLs do Auth, homologação funcional e variáveis da Vercel continuam pendentes. Não houve deploy. Consulte [NAC-MISSAO-10.md](docs/NAC-MISSAO-10.md).
+As 15 migrations (14 originais e a correção de privilégios da auditoria) passaram na instalação limpa local. O ensaio incremental da estrutura remota e as oito suítes pgTAP passaram com 134 asserções. Auth e os três painéis passaram nos testes HTTP locais, incluindo volume e paginação. A validação visual desta versão permanece pendente. Nenhuma migration remota foi aplicada e não houve deploy. Consulte [NAC-MASTER.md](docs/NAC-MASTER.md), a [comparação do banco](docs/MASTER-BANCO.md) e o [plano de backup/publicação](docs/MASTER-OPERACOES.md).

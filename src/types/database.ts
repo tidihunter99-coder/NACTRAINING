@@ -44,6 +44,14 @@ export interface ExerciseRow {
   instructions: string | null;
   video_url: string | null;
   image_url: string | null;
+  anatomy_image_url: string | null;
+  coaching_tip: string | null;
+  common_mistakes: string | null;
+  visual_review_status: "pending" | "approved";
+  media_rights_note: string | null;
+  technical_reviewer: string | null;
+  visual_reviewed_by: DatabaseId | null;
+  visual_reviewed_at: IsoTimestamp | null;
   created_by: DatabaseId | null;
   visibility: ExerciseVisibility;
   is_active: boolean;

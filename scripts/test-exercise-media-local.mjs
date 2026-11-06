@@ -1,0 +1,147 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import sharp from 'sharp';
+import { assertLocalOrigin } from './local-test-target.mjs';
+
+const api = process.env.SUPABASE_LOCAL_URL;
+const key = process.env.SUPABASE_LOCAL_PUBLISHABLE_KEY;
+const secret = process.env.SUPABASE_LOCAL_SECRET_KEY;
+const app = process.env.NAC_LOCAL_APP_URL;
+assertLocalOrigin(api, '127.0.0.1');
+assertLocalOrigin(app, 'localhost');
+assert.ok(key && secret);
+const fixture = JSON.parse(await readFile(join(tmpdir(), 'nac-mission10-visual-fixture.json'), 'utf8'));
+const service = createClient(api, secret, { auth: { autoRefreshToken: false, persistSession: false } });
+const headers = { Origin: app };
+const users = {};
+const clients = {};
+for (const role of ['student', 'empty', 'teacher', 'admin']) {
+  const jar = new Map();
+  const auth = createServerClient(api, key, { cookies: { getAll: () => [...jar].map(([name, value]) => ({ name, value })), setAll: (items) => items.forEach(({ name, value }) => jar.set(name, value)) } });
+  assert.ifError((await auth.auth.signInWithPassword({ email: fixture.emails[role], password: fixture.password })).error);
+  users[role] = Object.fromEntries(jar);
+  const client = createClient(api, key, { auth: { autoRefreshToken: false, persistSession: false } });
+  assert.ifError((await client.auth.signInWithPassword({ email: fixture.emails[role], password: fixture.password })).error);
+  clients[role] = client;
+}
+const cookie = (role) => Object.entries(users[role]).map(([name, value]) => `${name}=${value}`).join('; ');
+let exerciseId;
+let prescriptionId;
+try {
+  const created = await service.from('exercises').insert({ name: `Teste local de mídia ${Date.now()}`, muscle_group: 'chest', visibility: 'academy', instructions: 'Execução de teste' }).select('id').single();
+  assert.ifError(created.error);
+  exerciseId = created.data.id;
+  const prescribed = await service.from('workout_exercises').insert({ workout_day_id: fixture.ids.dayB, exercise_id: exerciseId, display_order: 2, sets: 3, repetitions: 10, rest_seconds: 60 }).select('id').single();
+  assert.ifError(prescribed.error);
+  prescriptionId = prescribed.data.id;
+  const emptyPage = await fetch(`${app}/aluno/exercicios/${exerciseId}`, { headers: { Cookie: cookie('student') } });
+  assert.equal(emptyPage.status, 200);
+  const emptyHtml = await emptyPage.text();
+  assert.match(emptyHtml, /Imagem em revisão/);
+  assert.match(emptyHtml, /Demonstração em revisão/);
+  assert.doesNotMatch(emptyHtml, /Reproduzir demonstração/);
+  const asset = await readFile('public/images/exercises/bench-press.webp');
+  const send = async (role, data, kind = 'cover', type = 'image/webp') => {
+    const form = new FormData();
+    form.set('exerciseId', exerciseId);
+    form.set('kind', kind);
+    form.set('file', new File([data], `test.${type === 'image/gif' ? 'gif' : 'webp'}`, { type }));
+    return fetch(`${app}/api/admin/exercise-media`, { method: 'POST', headers: { ...headers, ...(role ? { Cookie: cookie(role) } : {}) }, body: form });
+  };
+  for (const role of [null, 'student', 'teacher']) {
+    const response = await send(role, asset);
+    assert.equal(response.status, 403, `${role || 'sem sessão'} não pode enviar: ${(await response.text()).slice(0, 200)}`);
+  }
+  assert.equal((await send('admin', Buffer.from('<html>arquivo inválido</html>'))).status, 400, 'Assinatura inválida rejeitada');
+  assert.equal((await send('admin', await readFile('public/images/exercises/incline-press.webp'))).status, 400, 'Capa abaixo do padrão rejeitada');
+  const uploaded = await send('admin', asset);
+  assert.equal(uploaded.status, 200, `Admin upload: ${await uploaded.clone().text()}`);
+  const url = (await uploaded.json()).url;
+  assert.ok(url.startsWith(`nac-media:exercises/${exerciseId}/cover-`));
+  const privatePath = url.slice('nac-media:'.length);
+  const privateRoute = `${app}/api/exercise-media/${exerciseId}/cover`;
+  assert.equal((await fetch(privateRoute)).status, 401, 'Rota privada nega anônimo');
+  assert.equal((await fetch(privateRoute, { headers: { Cookie: cookie('student') } })).status, 404, 'Aluno não vê mídia pendente');
+  assert.equal((await fetch(privateRoute, { headers: { Cookie: cookie('teacher') } })).status, 404, 'Professor não vê mídia pendente');
+  assert.equal((await clients.student.storage.from('nac-exercise-media').download(privatePath)).data, null, 'Storage nega aluno pendente');
+  assert.ok((await createClient(api, key).storage.from('nac-exercise-media').download(privatePath)).error, 'Storage nega usuário anônimo');
+  assert.equal((await fetch(`${api}/storage/v1/object/public/nac-exercise-media/${privatePath}`)).ok, false, 'URL pública não expõe arquivo');
+  const imageResponse = await fetch(privateRoute, { headers: { Cookie: cookie('admin') }, redirect: 'manual' });
+  assert.equal(imageResponse.status, 307, 'Admin recebe URL assinada para mídia pendente');
+  assert.match(imageResponse.headers.get('cache-control') || '', /no-store/, 'Rota não permite cache persistente');
+  assert.equal(imageResponse.headers.get('referrer-policy'), 'no-referrer');
+  const signedLocation = imageResponse.headers.get('location');
+  assert.ok(signedLocation?.includes('/storage/v1/object/sign/nac-exercise-media/'), 'Rota emite URL temporária do Storage');
+  const signedResponse = await fetch(signedLocation);
+  assert.equal(signedResponse.status, 200, 'URL assinada entrega a mídia sem cookie');
+  const imageBytes = Buffer.from(await signedResponse.arrayBuffer());
+  const imageMeta = await sharp(imageBytes).metadata();
+  assert.equal(imageMeta.format, 'webp');
+  assert.ok(imageBytes.length <= 900_000 && imageMeta.width <= 1440, 'Capa otimizada');
+  const associated = await service.from('exercises').select('image_url,visual_review_status').eq('id', exerciseId).single();
+  assert.ifError(associated.error);
+  assert.equal(associated.data.image_url, url);
+  assert.equal(associated.data.visual_review_status, 'pending', 'Upload mantém conteúdo em revisão');
+  const replacementAsset = await sharp(asset).flop().webp().toBuffer();
+  const replacement = await send('admin', replacementAsset);
+  assert.equal(replacement.status, 200, `Substituição: ${await replacement.clone().text()}`);
+  const replacementUrl = (await replacement.json()).url;
+  assert.notEqual(replacementUrl, url);
+  const replaced = await service.from('exercises').select('image_url,visual_review_status').eq('id', exerciseId).single();
+  assert.ifError(replaced.error);
+  assert.equal(replaced.data.image_url, replacementUrl, 'Nova mídia associada ao mesmo exercício');
+  assert.equal(replaced.data.visual_review_status, 'pending');
+  assert.ok((await clients.admin.storage.from('nac-exercise-media').download(privatePath)).error, 'Mídia anterior removida após substituição');
+  assert.equal((await fetch(privateRoute, { headers: { Cookie: cookie('admin') } })).status, 200, 'Nova mídia privada legível');
+  const gif = Buffer.from('47494638396101000100800000000000ffffff21f90401000000002c00000000010001000002024401003b', 'hex');
+  const demo = await send('admin', gif, 'demonstration', 'image/gif');
+  assert.equal(demo.status, 200, `GIF: ${await demo.clone().text()}`);
+  const anatomy = await send('admin', await readFile('public/images/exercises/chest-anatomy.webp'), 'anatomy');
+  assert.equal(anatomy.status, 200, `Anatomia: ${await anatomy.clone().text()}`);
+  const pendingHtml = await (await fetch(`${app}/aluno/exercicios/${exerciseId}`, { headers: { Cookie: cookie('student') } })).text();
+  assert.doesNotMatch(pendingHtml, /Reproduzir demonstração/, 'Aluno não vê demonstração pendente');
+  const approved = await clients.admin.from('exercises').update({ coaching_tip: 'Dica local', common_mistakes: 'Erro local', media_rights_note: 'Arquivo de teste local', technical_reviewer: 'Revisor local', visual_reviewed_by: fixture.ids.admin, visual_reviewed_at: new Date().toISOString(), visual_review_status: 'approved' }).eq('id', exerciseId).select('id').single();
+  assert.ifError(approved.error);
+  const approvedResponse = await fetch(privateRoute, { headers: { Cookie: cookie('student') }, redirect: 'manual' });
+  assert.equal(approvedResponse.status, 307, 'Aluno autorizado recebe URL assinada de mídia aprovada');
+  assert.match(approvedResponse.headers.get('cache-control') || '', /no-store/);
+  assert.ok(approvedResponse.headers.get('location')?.includes('/storage/v1/object/sign/nac-exercise-media/'));
+  assert.equal((await fetch(privateRoute, { headers: { Cookie: cookie('empty') }, redirect: 'manual' })).status, 404, 'Aluno sem o exercício no treino não recebe URL assinada');
+  assert.ok((await clients.empty.storage.from('nac-exercise-media').download(replacementUrl.slice('nac-media:'.length))).error, 'Storage bloqueia aluno fora do próprio treino');
+  assert.ok((await clients.student.storage.from('nac-exercise-media').download(replacementUrl.slice('nac-media:'.length))).data, 'Storage autoriza mídia aprovada');
+  assert.ok((await clients.teacher.storage.from('nac-exercise-media').download(replacementUrl.slice('nac-media:'.length))).data, 'Professor autorizado lê mídia aprovada');
+  const ranged = await fetch(approvedResponse.headers.get('location'), { headers: { Range: 'bytes=0-9' } });
+  assert.equal(ranged.status, 206, 'URL assinada preserva leitura parcial');
+  assert.equal((await ranged.arrayBuffer()).byteLength, 10);
+  assert.equal((await fetch(`${app}/api/exercise-media/${exerciseId}/demonstration`, { headers: { Cookie: cookie('student') }, redirect: 'manual' })).status, 307, 'Aluno recebe URL assinada para GIF aprovado');
+  assert.ifError((await service.from('profiles').update({ status: 'inactive' }).eq('id', fixture.ids.student)).error);
+  assert.equal((await fetch(privateRoute, { headers: { Cookie: cookie('student') } })).status, 401, 'Aluno inativo perde acesso pela rota');
+  assert.ok((await clients.student.storage.from('nac-exercise-media').download(replacementUrl.slice('nac-media:'.length))).error, 'Aluno inativo perde acesso pelo Storage');
+  assert.ifError((await service.from('profiles').update({ status: 'active' }).eq('id', fixture.ids.student)).error);
+  const revoked = await clients.admin.from('exercises').update({ visual_review_status: 'pending', visual_reviewed_by: null, visual_reviewed_at: null, media_rights_note: null, technical_reviewer: null }).eq('id', exerciseId).select('id').single();
+  assert.ifError(revoked.error);
+  assert.equal((await fetch(privateRoute, { headers: { Cookie: cookie('student') } })).status, 404, 'Revogação interrompe leitura imediatamente');
+  assert.ok((await clients.student.storage.from('nac-exercise-media').download(replacementUrl.slice('nac-media:'.length))).error, 'Storage bloqueia leitura após revogação');
+  const remove = async (role) => fetch(`${app}/api/admin/exercise-media`, { method: 'DELETE', headers: { ...headers, 'Content-Type': 'application/json', Cookie: cookie(role) }, body: JSON.stringify({ exerciseId, kind: 'cover' }) });
+  assert.equal((await remove('student')).status, 403);
+  assert.equal((await remove('admin')).status, 200);
+  const cleared = await service.from('exercises').select('image_url').eq('id', exerciseId).single();
+  assert.ifError(cleared.error);
+  assert.equal(cleared.data.image_url, null);
+  assert.ok((await clients.admin.storage.from('nac-exercise-media').download(replacementUrl.slice('nac-media:'.length))).error, 'Arquivo substituto removido do Storage');
+  console.log('PASS mídia privada, upload/admin, negação sem sessão/aluno/professor, assinatura, revisão, leitura, revogação, substituição e remoção local');
+} finally {
+  assert.ifError((await service.from('profiles').update({ status: 'active' }).eq('id', fixture.ids.student)).error);
+  if (prescriptionId) {
+    const deletedPrescription = await service.from('workout_exercises').delete().eq('id', prescriptionId);
+    assert.ifError(deletedPrescription.error);
+  }
+  if (exerciseId) {
+    const deleted = await service.from('exercises').delete().eq('id', exerciseId);
+    assert.ifError(deleted.error);
+  }
+}

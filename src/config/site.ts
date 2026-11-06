@@ -1,7 +1,7 @@
 export const siteConfig = {
-  academyName: "NAC Academia",
+  academyName: "NAC — New Athletic Center",
   name: "NAC TRAINING",
   slogan: "Seu treino. Sua evolução.",
   description:
-    "Uma nova experiência para acompanhar seus treinos, registrar seus resultados e evoluir com o acompanhamento da NAC Academia.",
+    "Acompanhe seus treinos, registre resultados e evolua com o acompanhamento da NAC — New Athletic Center.",
 } as const;

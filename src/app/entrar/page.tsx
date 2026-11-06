@@ -12,5 +12,5 @@ const notices: Record<string, string> = {
 
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const { estado } = await searchParams;
-  return <AuthFrame title="BEM-VINDO AO NAC TRAINING" subtitle="Seu treino. Sua evolução."><AuthForm notice={notices[estado || ""]} variant="login" /></AuthFrame>;
+  return <AuthFrame login title="BEM-VINDO AO NAC TRAINING" subtitle="Seu treino. Sua evolução."><AuthForm notice={notices[estado || ""]} variant="login" /></AuthFrame>;
 }

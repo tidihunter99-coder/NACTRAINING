@@ -1,10 +1,66 @@
 # Missão 10 — auditoria do Supabase existente e plano de atualização
 
-**Data:** 4 de novembro de 2026. **Estado:** inventário remoto de leitura executado; comparação integral das definições e homologação funcional remota **pendentes**. A nova orientação mantém exclusivamente o projeto Supabase NAC existente (`ifczsjazqxfqimquozjy`). Não houve migration, alteração de dados, `db reset` ou deploy.
+**Data:** 4 de novembro de 2026. **Estado:** diagnóstico e revisão visual local concluídos dentro das permissões disponíveis; homologação funcional remota **pendente**. O alvo remoto é exclusivamente o projeto Supabase NAC existente (`ifczsjazqxfqimquozjy`). Não houve migration, alteração de dados, `db reset` ou deploy remoto.
+
+## Fechamento da Missão 10 nesta retomada
+
+Esta seção registra o estado mais recente. O restante do documento preserva a cronologia da auditoria anterior; as 125 asserções citadas mais abaixo pertencem à execução anterior. A matriz detalhada de definições e o plano operacional posterior estão em [MASTER-BANCO.md](MASTER-BANCO.md) e [MASTER-OPERACOES.md](MASTER-OPERACOES.md).
+
+### 1. Estado remoto efetivamente verificado
+
+O inventário privilegiado **somente de leitura** do SQL Editor, capturado anteriormente em 04/11/2026, identificou PostgreSQL 17.11, dez tabelas NAC em `public` com RLS ativa, 29 políticas, 28 índices públicos, 16 triggers de usuário públicos, 23 funções públicas, `pgcrypto` 1.3 e ausência de histórico em `supabase_migrations.schema_migrations`. Naquele instante, `EXISTS` retornou falso para as dez tabelas NAC e `auth.users`; isso **não garante** que continuem vazias. Os catálogos exportados em `supabase/audit/remote-*.json` foram comparados com a instalação local de 15 migrations, sem selecionar linhas pessoais. O suplemento de grants de schema/coluna, default ACL e dependências em `supabase/audit/supplement-readonly.sql` continua sem execução remota: uma nova tentativa de abrir o painel nesta retomada exigiu login, e nenhuma consulta SQL foi enviada.
+
+Nesta retomada, `scripts/mission10-remote-readonly.mjs` repetiu somente GETs com a chave **publishable** e TLS validado pela CA do Windows. `/auth/v1/settings` respondeu 200, `disable_signup=false`, `mailer_autoconfirm=false`. Os dez recursos REST responderam 401/42501 para `anon`, sem solicitar linhas (`limit=0`). Isso confirma a configuração pública observável e a negativa anônima; não testa RLS autenticada nem atualiza o inventário privilegiado de estrutura. Não foram usadas chaves secretas remotas.
+
+### 2–3. Compatibilidade e migrations
+
+| Categoria | Diferença no catálogo remoto capturado | Consequência |
+| --- | --- | --- |
+| Migrations | Histórico remoto inexistente; 15 migrations na instalação local limpa | `db push` não é seguro sobre tabelas já existentes |
+| Estrutura | Uma coluna e uma constraint ausentes em `audit_events`; dois índices e quatro triggers públicos ausentes | Auditoria e guardas de integridade não equivalem ao local |
+| Funções | 15 ausentes e seis divergentes | Operações de professor/admin e validações podem falhar ou ter semântica antiga |
+| RLS | 29 políticas remotas contra 31 locais; 11 predicados divergentes | Isolamento de alunos, inativos e histórico não está homologado remotamente |
+| Privilégios | Dois grants de tabela e 12 EXECUTE divergentes; 45 entradas EXECUTE ausentes por funções inexistentes | Rever exposição da Data API e funções internas |
+
+Os nomes e as definições de cada objeto estão em [MASTER-BANCO.md](MASTER-BANCO.md) e `supabase/audit/catalog-diff.json`. O candidato `supabase/audit/reconciliation-candidate.sql` foi **preparado e ensaiado somente em banco local reconstruído**: parte do catálogo remoto observado, aplica diferenças incrementais das migrations 3–15 e chega ao catálogo final local nas dez categorias comparadas. Ele **não está liberado para aplicação remota**. Não basta marcar arquivos antigos como aplicados; o histórico ausente precisa de decisão própria após equivalência e execução real.
+
+### 4. Segurança e integridade
+
+As oito suítes pgTAP locais passaram **134/134** novamente nesta retomada. Os testes HTTP locais de Auth, aluno, professor e administrador passaram, incluindo isolamento, bloqueio de inativos, edição/ativação de fichas, sessões, histórico e auditoria. Uma vulnerabilidade de privilégio em `write_audit_event` foi corrigida pela migration local `20261104130000_internal_audit_privileges.sql` e coberta por pgTAP; o inventário remoto anterior ainda mostra o grant inseguro. Não houve exploração nem correção remota. A negativa 401 para `anon` não substitui testes autenticados de RLS no remoto.
+
+### 5. Autenticação real
+
+O aplicativo continua bloqueando Auth remoto sem `NEXT_PUBLIC_NAC_ENABLE_REMOTE_AUTH=true` e uma `NEXT_PUBLIC_SITE_URL` HTTPS válida. O painel remoto observado usa Site URL `http://localhost:3000`, não possui Redirect URLs e não tem SMTP personalizado; confirmação de e-mail está ligada. Cadastro, confirmação, recuperação, redefinição, logout, refresh, papéis e rotas passaram **localmente**. Entrega real de e-mail, callbacks HTTPS, domínio futuro e contas remotas não foram homologados. Não se habilitou Auth remoto para usuários finais.
+
+### 6. Revisão visual pendente
+
+Com uma fixture fictícia exclusiva do Supabase local, foram inspecionados no navegador o dashboard, ficha, execução, histórico, evolução e perfil do aluno; o detalhe de aluno, editor de ficha, catálogo e atividades do professor; e dashboard, listas, detalhes, vínculos, catálogo e auditoria do administrador. As rotas principais foram percorridas em **390 × 844, 768 × 1024 e 1440 × 900**. As páginas observadas não ultrapassaram a largura do viewport. Também foram verificados login com senha incorreta, aluno sem ficha, histórico vazio e ausência de medidas. O conteúdo dos formulários e as mensagens permaneceram legíveis. Indicadores da fixture ou de registros locais anteriores não são indicadores reais da NAC.
+
+O detalhe do aluno no painel do professor exibia uma barra de rolagem horizontal nas abas internas em 390 px. `src/app/professor/alunos/[studentId]/page.tsx` agora distribui as cinco abas em duas linhas; a versão recompilada foi conferida visualmente sem barra horizontal. Nenhuma ação de publicação ou alteração funcional foi feita. A fixture foi removida integralmente (`VISUAL_FIXTURE_CLEAN`), e o Next de teste e o Supabase local foram encerrados.
+
+### 7. Testes desta retomada
+
+| Verificação | Resultado |
+| --- | --- |
+| Supabase local, oito suítes pgTAP | **134 aprovados, 0 falhas** |
+| Auth, aluno, professor e admin contra Next + Supabase locais | Quatro fluxos aprovados; fixtures dos scripts limpas |
+| `npm run lint`, `npm run typecheck`, `npm run build` | Aprovados após o ajuste visual |
+| Verificador de esquema, configuração de deploy, paginação e regressões de recuperação | Aprovados; nove cenários de configuração |
+| Navegador nas três larguras | Rotas principais e estados vazios/erro revisados; ajuste das abas confirmado |
+
+### 8–9. Plano de integração e riscos
+
+1. Repetir o inventário remoto completo imediatamente antes de qualquer mudança, executar o suplemento somente de leitura, identificar consumidores de `auth`, `storage`, outros schemas, funções externas e aplicações que usem o projeto. O catálogo `public` não prova ausência de dependências compartilhadas.
+2. Obter autorização separada para um backup lógico completo, com destino privado fora de Git/OneDrive; verificar integridade e restaurabilidade em ambiente **local isolado**, sem criar outro Supabase remoto. O plano Free observado não oferece backup recuperável comprovado. Um dump padrão de esquema não cobre usuários Auth, dados e arquivos Storage.
+3. Revisar o SQL incremental exato, pré-condições, locks e impacto com um novo catálogo remoto. Ensaiar com dados fictícios e preservar dados existentes. O candidato atual tem transação e pré-condições, mas não valida o project ref automaticamente nem cobre configuração externa. Submeter SQL/hash e janela para aprovação própria; não usar `db reset`, `db push` ou escrita no SQL Editor por suposição.
+4. Após uma aplicação **futura e aprovada**, comparar catálogos, grants, FKs, índices, triggers e 31 políticas; executar testes autenticados de isolamento, inativos, auditoria e fluxos com contas fictícias somente se autorizadas. Se falhar antes de COMMIT, abortar a transação; após COMMIT, tratar recuperação a partir de backup testado ou correção de avanço aprovada, sem prometer rollback sem perda de escritas posteriores.
+5. Configurar Site URL/Redirect URLs HTTPS, templates, SMTP, limites e rotação da chave secreta exposta somente em etapa aprovada. Provisionar o primeiro administrador com autorização específica. Preparar Preview protegido e separado de Production apenas depois da equivalência, backup e Auth; não foi publicado nada na Vercel.
+
+**Decisão:** a preparação e o diagnóstico permitidos da Missão 10 estão documentados, e a pendência visual local foi concluída. O Supabase remoto **não está homologado para uso real**: faltam suplemento de catálogo, inventário atualizado, backup recuperável, correção remota aprovada, testes RLS autenticados e Auth/HTTPS/SMTP. Nenhuma ação remota de escrita ou publicação está autorizada por este relatório.
 
 ## Ambiente e autorização
 
-Antes da mudança de orientação, a Missão 10 usou uma pilha local descartável `NACM10Clean` e a encerrou após os testes. **Nenhuma nova pilha foi iniciada nesta revisão.** O usuário autorizou auditoria somente de leitura do projeto remoto NAC existente, com a condição explícita de apresentar qualquer escrita remota para aprovação prévia. Não há autorização para aplicar migrations, criar usuários, alterar Auth, fazer backup remoto ou publicar Preview.
+Antes da mudança de orientação, a Missão 10 usou uma pilha local descartável `NACM10Clean` e a encerrou após os testes. **Nenhuma nova pilha foi iniciada naquela revisão anterior.** Nesta retomada, uma pilha local foi usada para pgTAP, fluxos e revisão visual, e depois encerrada. O usuário autorizou auditoria somente de leitura do projeto remoto NAC existente. Não há autorização para aplicar migrations, criar usuários, alterar Auth, fazer backup remoto ou publicar Preview.
 
 O `.env.local` contém a URL HTTPS desse projeto e uma chave **publishable**, mas não contém `NEXT_PUBLIC_SITE_URL` e não ativa `NEXT_PUBLIC_NAC_ENABLE_REMOTE_AUTH`. Seus valores não foram copiados para logs ou relatório. Não há marcador local de projeto Supabase vinculado nem token de acesso do CLI. O usuário entrou no painel web e autorizou a continuação da **leitura**, incluindo o salvamento automático do texto das consultas como metadado privado do SQL Editor. O painel identifica `main` como **PRODUCTION**, no plano **Free**.
 

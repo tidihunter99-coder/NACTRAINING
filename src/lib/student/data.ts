@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { readPages } from "@/lib/supabase/pagination";
 import type { BodyMetricRow, ExerciseRow, ProfileRow, WorkoutDayRow, WorkoutExerciseRow, WorkoutPlanRow, WorkoutSessionRow, WorkoutSetLogRow } from "@/types/database";
 
 async function client() {
@@ -35,6 +36,23 @@ export async function getDayExercises(dayId: string) {
   return prescribed.map((prescription) => ({ prescription, exercise: byId.get(prescription.exercise_id) ?? null }));
 }
 
+export async function getAcademyExercises() {
+  const supabase = await client();
+  return readPages<ExerciseRow>((from, to) => supabase.from("exercises").select("*").eq("visibility", "academy").eq("is_active", true).order("name").order("id").range(from, to));
+}
+
+export async function getExercise(exerciseId: string) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(exerciseId)) return null;
+  const supabase = await client();
+  return checked((await supabase.from("exercises").select("*").eq("id", exerciseId).maybeSingle())) as ExerciseRow | null;
+}
+
+export async function getFavoriteIds(studentId: string) {
+  const supabase = await client();
+  const rows = await readPages<{ exercise_id: string }>((from, to) => supabase.from("student_exercise_favorites").select("exercise_id").eq("student_id", studentId).order("exercise_id").range(from, to));
+  return new Set(rows.map((row) => row.exercise_id));
+}
+
 export async function getOpenSession(studentId: string) {
   const supabase = await client();
   return checked((await supabase.from("workout_sessions").select("*").eq("student_id", studentId).eq("status", "in_progress").maybeSingle())) as WorkoutSessionRow | null;
@@ -48,7 +66,25 @@ export async function getSession(studentId: string, sessionId: string) {
 
 export async function getSessions(studentId: string) {
   const supabase = await client();
-  return checked((await supabase.from("workout_sessions").select("*").eq("student_id", studentId).order("started_at", { ascending: false }).limit(200))) as WorkoutSessionRow[];
+  return readPages<WorkoutSessionRow>((from, to) => supabase.from("workout_sessions").select("*").eq("student_id", studentId).order("started_at", { ascending: false }).order("id").range(from, to));
+}
+
+export async function getHistoryPage(studentId: string, page: number, period?: string, day?: string) {
+  const supabase = await client();
+  let query = supabase.from("workout_sessions").select("*", { count: "exact" }).eq("student_id", studentId).eq("status", "completed");
+  if (period && ["7", "30", "90"].includes(period)) query = query.gte("finished_at", new Date(Date.now() - Number(period) * 86400000).toISOString());
+  if (day) query = query.eq("workout_day_id", /^[0-9a-f-]{36}$/i.test(day) ? day : "00000000-0000-0000-0000-000000000000");
+  const result = await query.order("finished_at", { ascending: false }).order("id").range((page - 1) * 20, page * 20 - 1);
+  return { sessions: checked(result) as WorkoutSessionRow[], count: result.count ?? 0 };
+}
+
+export async function getHistoryDays(studentId: string) {
+  const supabase = await client();
+  const rows = await readPages<{ workout_day_id: string }>((from, to) => supabase.from("workout_sessions").select("workout_day_id").eq("student_id", studentId).eq("status", "completed").order("id").range(from, to));
+  const ids = [...new Set(rows.map((row) => row.workout_day_id))];
+  const days: WorkoutDayRow[] = [];
+  for (let i = 0; i < ids.length; i += 40) days.push(...checked(await supabase.from("workout_days").select("*").in("id", ids.slice(i, i + 40))) as WorkoutDayRow[]);
+  return days;
 }
 
 export async function getCompletedCount(studentId: string) {
@@ -60,12 +96,12 @@ export async function getCompletedCount(studentId: string) {
 
 export async function getLogs(sessionId: string) {
   const supabase = await client();
-  return checked((await supabase.from("workout_set_logs").select("*").eq("workout_session_id", sessionId).order("set_number"))) as WorkoutSetLogRow[];
+  return readPages<WorkoutSetLogRow>((from, to) => supabase.from("workout_set_logs").select("*").eq("workout_session_id", sessionId).order("set_number").order("id").range(from, to));
 }
 
 export async function getMetrics(studentId: string) {
   const supabase = await client();
-  return checked((await supabase.from("body_metrics").select("*").eq("student_id", studentId).order("recorded_at", { ascending: false }).limit(100))) as BodyMetricRow[];
+  return readPages<BodyMetricRow>((from, to) => supabase.from("body_metrics").select("*").eq("student_id", studentId).order("recorded_at", { ascending: false }).order("id").range(from, to));
 }
 
 export async function getFullProfile(studentId: string) {

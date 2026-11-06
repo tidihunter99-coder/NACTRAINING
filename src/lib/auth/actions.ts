@@ -46,7 +46,12 @@ export async function recoverAction(_: AuthActionState, form: FormData): Promise
   if (!emailPattern.test(email)) return { message: "Informe um e-mail válido.", success: false };
   const client = await createSupabaseServerClient();
   if (!client) return { message: "Recuperação temporariamente indisponível.", success: false };
-  await client.auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl()}/auth/confirm?destino=redefinir-senha` });
+  try {
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl()}/auth/confirm?destino=redefinir-senha` });
+    if (error) return { message: "Não foi possível enviar as instruções agora. Aguarde e tente novamente.", success: false };
+  } catch {
+    return { message: "Não foi possível enviar as instruções agora. Aguarde e tente novamente.", success: false };
+  }
   return { message: "Se houver uma conta com este e-mail, enviaremos as instruções de recuperação.", success: true };
 }
 

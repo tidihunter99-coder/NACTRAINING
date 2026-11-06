@@ -1,3 +1,4 @@
+import { assertLocalOrigin } from "./local-test-target.mjs";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
@@ -7,6 +8,8 @@ const baseUrl = process.env.SUPABASE_LOCAL_URL;
 const publicKey = process.env.SUPABASE_LOCAL_PUBLISHABLE_KEY;
 const secretKey = process.env.SUPABASE_LOCAL_SECRET_KEY;
 const appUrl = process.env.NAC_LOCAL_APP_URL;
+assertLocalOrigin(baseUrl, "127.0.0.1");
+if (appUrl) assertLocalOrigin(appUrl, "localhost");
 if (!baseUrl?.startsWith("http://127.0.0.1:") || !appUrl?.startsWith("http://localhost:") || !publicKey || !secretKey) throw new Error("Este teste exige apenas Supabase e Next.js locais.");
 const service = createClient(baseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
 const suffix = Date.now(); const password = "AdminFlowLocal2026!#";

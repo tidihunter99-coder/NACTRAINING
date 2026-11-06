@@ -136,9 +136,16 @@ const missingAdminTests = adminTestFragments.filter((fragment) => !adminTest.inc
 const bootstrapTestFragments = ["select plan(13);", "Authenticated API role cannot execute bootstrap", "Second bootstrap is refused", "rollback;"];
 const missingBootstrapTests = bootstrapTestFragments.filter((fragment) => !bootstrapTest.includes(fragment));
 const migrationCount = migrations.filter((name) => name.endsWith(".sql")).length;
+const mediaMigration = await readFile(resolve("supabase/migrations/20261104160000_exercise_media_management.sql"), "utf8");
+const mediaStorageMigration = await readFile(resolve("supabase/migrations/20261104170000_exercise_media_storage_select.sql"), "utf8");
+const visualReviewMigration = await readFile(resolve("supabase/migrations/20261104180000_exercise_visual_review.sql"), "utf8");
+const privateMediaMigration = await readFile(resolve("supabase/migrations/20261104190000_private_exercise_media.sql"), "utf8");
+const mediaControls = ["coaching_tip", "common_mistakes", "nac-exercise-media", "public.is_admin()", "protect_prescribed_exercise"];
+const privateMediaControls = ["public = false", "can_access_exercise_media", "can_access_exercise_media_object", "student_has_session_for_plan", "nac_exercise_media_authorized_select", "Only administrators can associate exercise media"];
+const missingMedia = mediaControls.filter((fragment) => !mediaMigration.includes(fragment)).concat(["for select to authenticated", "public.is_admin()"].filter((fragment) => !mediaStorageMigration.includes(fragment)), ["visual_review_status", "media_rights_note", "technical_reviewer", "exercises_protect_visual_review", "Only administrators can review exercise visuals"].filter((fragment) => !visualReviewMigration.includes(fragment)), privateMediaControls.filter((fragment) => !privateMediaMigration.includes(fragment)));
 const testCount = tests.filter((name) => name.endsWith("_test.sql")).length;
 
-if (missing.length > 0 || missingHardening.length > 0 || missingInactive.length > 0 || missingStudentFlow.length > 0 || missingInstructor.length > 0 || missingConflict.length > 0 || missingEditor.length > 0 || missingAdmin.length > 0 || missingBootstrap.length > 0 || missingRlsTests.length > 0 || missingInactiveTests.length > 0 || missingStudentFlowTests.length > 0 || missingInstructorTests.length > 0 || missingEditorTests.length > 0 || missingAdminTests.length > 0 || missingBootstrapTests.length > 0 || policyCount !== 29 || migrationCount !== 14 || testCount !== 7) {
+if (missing.length > 0 || missingHardening.length > 0 || missingInactive.length > 0 || missingStudentFlow.length > 0 || missingInstructor.length > 0 || missingConflict.length > 0 || missingEditor.length > 0 || missingAdmin.length > 0 || missingBootstrap.length > 0 || missingRlsTests.length > 0 || missingInactiveTests.length > 0 || missingStudentFlowTests.length > 0 || missingInstructorTests.length > 0 || missingEditorTests.length > 0 || missingAdminTests.length > 0 || missingBootstrapTests.length > 0 || missingMedia.length > 0 || policyCount !== 29 || migrationCount !== 21 || testCount !== 8) {
   throw new Error([
     "Schema verification failed.",
     missing.length > 0 ? `Missing base fragments:\n${missing.join("\n")}` : "",
@@ -150,6 +157,7 @@ if (missing.length > 0 || missingHardening.length > 0 || missingInactive.length 
     missingEditor.length > 0 ? `Missing instructor editor fragments:\n${missingEditor.join("\n")}` : "",
     missingAdmin.length > 0 ? `Missing admin fragments:\n${missingAdmin.join("\n")}` : "",
     missingBootstrap.length > 0 ? `Missing bootstrap fragments:\n${missingBootstrap.join("\n")}` : "",
+    missingMedia.length > 0 ? `Missing media controls:\n${missingMedia.join("\n")}` : "",
     missingRlsTests.length > 0 ? `Missing pgTAP test fragments:\n${missingRlsTests.join("\n")}` : "",
     missingInactiveTests.length > 0 ? `Missing inactive pgTAP test fragments:\n${missingInactiveTests.join("\n")}` : "",
     missingStudentFlowTests.length > 0 ? `Missing student flow pgTAP test fragments:\n${missingStudentFlowTests.join("\n")}` : "",
@@ -158,8 +166,8 @@ if (missing.length > 0 || missingHardening.length > 0 || missingInactive.length 
     missingAdminTests.length > 0 ? `Missing admin pgTAP test fragments:\n${missingAdminTests.join("\n")}` : "",
     missingBootstrapTests.length > 0 ? `Missing bootstrap pgTAP test fragments:\n${missingBootstrapTests.join("\n")}` : "",
     policyCount !== 29 ? `Expected 29 base RLS policies; found ${policyCount}.` : "",
-    migrationCount !== 14 ? `Expected 14 migrations; found ${migrationCount}.` : "",
-    testCount !== 7 ? `Expected 7 pgTAP suites; found ${testCount}.` : "",
+    migrationCount !== 21 ? `Expected 21 migrations; found ${migrationCount}.` : "",
+    testCount !== 8 ? `Expected 8 pgTAP suites; found ${testCount}.` : "",
   ].filter(Boolean).join("\n"));
 }
 

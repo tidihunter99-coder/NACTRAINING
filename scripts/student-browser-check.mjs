@@ -8,6 +8,10 @@ const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const evidenceDir = resolve("docs/evidence");
 
 export async function verifyResponsive({ appUrl, cookies, sessionPath, paths, screenshotPaths, prefix = "mission-06" }) {
+  if (process.env.NAC_SKIP_BROWSER_CHECK === "1") {
+    console.log("SKIP RESPONSIVE: browser unavailable; only HTTP/database assertions run. No visual approval.");
+    return;
+  }
   const tempRoot = resolve(tmpdir());
   const profileDir = await mkdtemp(join(tempRoot, "nac-student-chrome-"));
   const chrome = spawn(chromePath, ["--headless=new", "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--remote-debugging-port=0", `--user-data-dir=${profileDir}`, "about:blank"], { stdio: "ignore", windowsHide: true });

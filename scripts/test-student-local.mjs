@@ -1,12 +1,16 @@
+import { assertLocalOrigin } from "./local-test-target.mjs";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { verifyResponsive } from "./student-browser-check.mjs";
+import { verifyVolume } from "./test-volume-fixture.mjs";
 
 const baseUrl = process.env.SUPABASE_LOCAL_URL;
 const publicKey = process.env.SUPABASE_LOCAL_PUBLISHABLE_KEY;
 const secretKey = process.env.SUPABASE_LOCAL_SECRET_KEY;
 const appUrl = process.env.NAC_LOCAL_APP_URL;
+assertLocalOrigin(baseUrl, "127.0.0.1");
+if (appUrl) assertLocalOrigin(appUrl, "localhost");
 if (!baseUrl?.startsWith("http://127.0.0.1:") || !appUrl?.startsWith("http://localhost:") || !publicKey || !secretKey) throw new Error("Este teste exige apenas Supabase e Next.js locais.");
 
 const admin = createClient(baseUrl, secretKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -71,7 +75,7 @@ try {
   assert.equal(planA.status, 200);
   const planHtml = await planA.text();
   assert.match(planHtml, /Supino Teste Local/);
-  assert.match(planHtml, /Instrução cadastrada de teste/);
+  assert.doesNotMatch(planHtml, /Instrução cadastrada de teste/, "Instrução ainda não revisada permanece oculta ao aluno");
   const planB = await b.request("/aluno/treinos");
   assert.doesNotMatch(await planB.text(), /Supino Teste Local/);
   console.log("PASS ficha e exercícios prescritos, estado vazio do aluno B");
@@ -153,6 +157,8 @@ try {
   const tamper = await a.client.from("workout_set_logs").update({ repetitions_completed: 8 }).eq("workout_session_id", ids.session).select("id");
   assert.equal(tamper.data?.length ?? 0, 0);
   console.log("PASS conclusão idempotente, histórico e imutabilidade da série");
+
+  await verifyVolume({ admin, student: a, ids });
 
   ok(await admin.from("workout_plans").update({ status: "archived" }).eq("id", ids.plan), "Arquivar ficha local");
   const archivedDetail = await a.request(sessionPath);

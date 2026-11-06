@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuditEventRow, ExerciseRow, ProfileRow, StudentInstructorRow, WorkoutPlanRow, WorkoutSessionRow } from "@/types/database";
+import { exerciseCoverage } from "@/lib/admin/exercise-coverage";
 
 export const pageSize = 20;
 export function isUuid(value: string) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value); }
@@ -85,14 +86,59 @@ export async function getLinksPage(page: number, active = "") {
   const profiles = ids.length ? checked(await client.from("profiles").select("*").in("id", ids)) as ProfileRow[] : [];
   return { links, profiles, count: result.count ?? 0 };
 }
-export async function getExercisesPage(page: number, search = "", muscle = "", state = "") {
+export async function getExercisesPage(page: number, search = "", muscle = "", state = "", coverage = "") {
   const client = await db();
-  let query = client.from("exercises").select("*", { count: "exact" }).order("name");
-  if (search) query = query.ilike("name", `%${safeSearch(search)}%`);
-  if (muscle) query = query.eq("muscle_group", muscle);
-  if (state === "active" || state === "inactive") query = query.eq("is_active", state === "active");
-  const result = await query.range((page - 1) * pageSize, page * pageSize - 1);
-  return { rows: checked(result) as ExerciseRow[], count: result.count ?? 0 };
+  const query = () => {
+    let result = client.from("exercises").select("*", { count: "exact" }).order("name").order("id");
+    if (search) result = result.ilike("name", `%${safeSearch(search)}%`);
+    if (muscle) result = result.eq("muscle_group", muscle);
+    if (state === "active" || state === "inactive") result = result.eq("is_active", state === "active");
+    return result;
+  };
+  if (!coverage) {
+    const result = await query().range((page - 1) * pageSize, page * pageSize - 1);
+    return { rows: checked(result) as ExerciseRow[], count: result.count ?? 0 };
+  }
+  const all: ExerciseRow[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const batch = checked(await query().range(offset, offset + 499)) as ExerciseRow[];
+    all.push(...batch);
+    if (batch.length < 500) break;
+  }
+  const filtered = all.filter((exercise) => {
+    const item = exerciseCoverage(exercise);
+    if (coverage === "complete") return item.complete;
+    if (coverage === "no-image") return !item.image;
+    if (coverage === "no-demo") return !item.demonstration;
+    if (coverage === "review") return exercise.visual_review_status !== "approved";
+    if (coverage === "problem") return item.invalidUrls > 0 || item.unsupportedDemonstration;
+    return true;
+  });
+  return { rows: filtered.slice((page - 1) * pageSize, page * pageSize), count: filtered.length };
+}
+export async function getExerciseMediaAudit() {
+  const client = await db();
+  const rows: ExerciseRow[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const result = await client.from("exercises").select("*").order("id").range(offset, offset + 499);
+    const page = checked(result) as typeof rows;
+    rows.push(...page);
+    if (page.length < 500) break;
+  }
+  const status = rows.map(exerciseCoverage);
+  return {
+    total: rows.length,
+    image: status.filter((item) => item.image).length,
+    video: rows.filter((row, index) => status[index].demonstration && /\.(mp4|webm)(?:\?|$)/i.test(row.video_url!)).length,
+    gif: rows.filter((row, index) => status[index].demonstration && /\.gif(?:\?|$)/i.test(row.video_url!)).length,
+    anatomy: status.filter((item) => item.anatomy).length,
+    complete: status.filter((item) => item.complete).length,
+    awaitingReview: rows.filter((row) => row.visual_review_status !== "approved").length,
+    withoutImage: status.filter((item) => !item.image).length,
+    withoutDemonstration: status.filter((item) => !item.demonstration).length,
+    withoutMedia: status.filter((item) => !item.image && !item.demonstration && !item.anatomy).length,
+    invalidUrls: status.reduce((sum, item) => sum + item.invalidUrls + Number(item.unsupportedDemonstration), 0),
+  };
 }
 export async function getExerciseDuplicateCounts(ids: string[]) {
   if (!ids.length) return new Map<string, number>();
