@@ -5,6 +5,7 @@ const component = await readFile("src/components/student/exercise-media.tsx", "u
 const styles = await readFile("src/app/globals.css", "utf8");
 
 assert.match(component, /controls muted/);
+assert.match(component, /muted loop/);
 assert.match(component, /playsInline/);
 assert.match(component, /preload="metadata"/);
 assert.match(component, /onLoadStart/);
