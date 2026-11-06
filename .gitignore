@@ -46,5 +46,11 @@ npm-debug.log*
 *.sql.gz
 *.pgpass
 
-# Authenticated remote-audit exports contain security metadata. Keep them local.
-/supabase/audit/mission15-remote-results/
+# Audit artifacts and authenticated exports contain security metadata. Keep them local.
+/supabase/audit/
+
+# Evidence remains local until it is manually redacted for publication.
+/docs/evidence/
+
+# Local visual fixture has test credentials and must not be versioned.
+/scripts/mission10-visual-fixture.mjs
