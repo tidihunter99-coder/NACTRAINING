@@ -31,7 +31,7 @@ export function ExerciseMedia({ name, photo, demonstration, demonstrationType }:
     {(!photo || photoFailed) && !playing && <div className="student-media-empty"><Dumbbell aria-hidden="true" size={56} /><span>Imagem em revisão</span></div>}
     {playing && playable && <video autoPlay className="student-hero-video" controls muted onCanPlay={() => setDemoLoading(false)} onError={() => { setDemoLoading(false); setDemoFailed(true); setPlaying(false); }} onLoadStart={() => setDemoLoading(true)} playsInline poster={photo || undefined} preload="metadata" ref={videoRef} src={source!} />}
     {playing && animated && <img alt={`Demonstração de ${name}`} className="student-hero-video" key={animationKey} onError={() => { setDemoLoading(false); setDemoFailed(true); setPlaying(false); }} onLoad={() => setDemoLoading(false)} src={source!} />}
-    {!playing && source && (playable || animated) && <button aria-label={`Reproduzir demonstração de ${name}`} className="student-media-play" onClick={start} type="button"><Play fill="currentColor" size={27} /></button>}
+    {!playing && source && (playable || animated) && <button aria-label={`Ver execução de ${name}`} className="student-media-play" onClick={start} type="button"><Play fill="currentColor" size={20} /><span>Ver execução</span></button>}
     {demoFailed && <div aria-live="polite" className="student-media-unavailable"><span>Demonstração indisponível.</span><button onClick={retry} type="button">Tentar novamente</button></div>}
     {!source && !demoFailed && (!photo || photoFailed) && <span className="student-media-pending">Demonstração em revisão</span>}
     {animated && !playing && <span className="student-media-type">GIF</span>}

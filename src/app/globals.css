@@ -123,7 +123,7 @@ a.student-exercise-row:hover { transform: translateY(-2px); border-color: #00baf
 .student-detail-heading { display: flex; height: 3.9rem; align-items: center; justify-content: center; position: relative; font-size: 1.3rem; font-weight: 900; }
 .student-detail-heading a { position: absolute; left: 0; }
 .student-detail-hero { position: relative; height: 15rem; min-height: 0; margin: 0 -.25rem; border-radius: .8rem; background-position: center; overflow: hidden; }
-.student-media-play { position: absolute; top: 50%; left: 50%; display: grid; width: 3.8rem; height: 3.8rem; transform: translate(-50%,-50%); place-items: center; border: 3px solid white; border-radius: 50%; background: #03111a7f; color: white; }
+.student-media-play { position: absolute; top: 50%; left: 50%; display: inline-flex; min-height: 3rem; transform: translate(-50%,-50%); align-items: center; justify-content: center; gap: .45rem; border: 2px solid white; border-radius: 999px; background: #03111ad9; padding: .65rem 1rem; color: white; font-size: .85rem; font-weight: 900; white-space: nowrap; }
 .student-media-pending { position: absolute; right: .5rem; bottom: .5rem; border: 1px solid #8ab1c3; border-radius: .5rem; background: #02111cdd; padding: .3rem .5rem; font-size: .65rem; }
 .student-media-type { position: absolute; right: .5rem; bottom: .5rem; border: 1px solid white; border-radius: .5rem; background: #02111cdd; padding: .3rem .5rem; font-weight: 900; }
 .student-detail-identity { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin: .65rem 0 .8rem; }
