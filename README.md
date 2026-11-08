@@ -22,6 +22,12 @@ O cadastro público cria apenas alunos. O primeiro administrador exige o procedi
 
 Nenhuma chave `service_role` ou `sb_secret_` pertence ao aplicativo. Os scripts de teste aceitam a chave secreta **somente da pilha local** para criar e remover fixtures fictícios.
 
+## Catálogo e vídeos locais
+
+Para validar um catálogo oficial antes de inserir no Supabase local, use `npm run catalog:import-local -- --input <catalogo.json>`. O comando é uma simulação por padrão, recusa mídias e nomes duplicados; uma gravação local exige `--apply` e `NAC_ALLOW_LOCAL_CATALOG_IMPORT=yes`. Há um formato de referência em `docs/catalog-import-local.example.json`.
+
+Para preparar um vídeo oficial sem modificar a origem nem enviar arquivos, use `npm run video:optimize -- --input <origem> --output <destino.mp4> --thumbnail <destino.webp>`. Os diretórios locais `media/exercise-originals/` e `media/exercise-optimized/` permanecem ignorados pelo Git até a aprovação técnica e o upload para o Storage privado.
+
 ## Verificação
 
 ```bash
@@ -37,4 +43,4 @@ Os fluxos end-to-end locais são `npm run test:student-local`, `npm run test:ins
 
 ## Estado de implantação
 
-As 15 migrations (14 originais e a correção de privilégios da auditoria) passaram na instalação limpa local. O ensaio incremental da estrutura remota e as oito suítes pgTAP passaram com 134 asserções. Auth e os três painéis passaram nos testes HTTP locais, incluindo volume e paginação. A validação visual desta versão permanece pendente. Nenhuma migration remota foi aplicada e não houve deploy. Consulte [NAC-MASTER.md](docs/NAC-MASTER.md), a [comparação do banco](docs/MASTER-BANCO.md) e o [plano de backup/publicação](docs/MASTER-OPERACOES.md).
+O repositório contém 21 migrations e oito suítes pgTAP. A última homologação local registrada cobriu o ensaio incremental da estrutura remota e 134 asserções; ela não substitui uma execução no ambiente atual. A validação visual desta versão permanece pendente. Nenhuma migration remota foi aplicada e não houve deploy. O Auth remoto permanece desativado no `.env.local` até haver homologação, URL HTTPS de callback e autorização explícita. Consulte [NAC-MASTER.md](docs/NAC-MASTER.md), a [comparação do banco](docs/MASTER-BANCO.md) e o [plano de backup/publicação](docs/MASTER-OPERACOES.md).

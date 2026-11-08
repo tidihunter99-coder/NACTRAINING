@@ -15,6 +15,33 @@ function checked<T>(result: { data: T | null; error: { message: string } | null 
   return result.data as T;
 }
 
+/**
+ * Content that has not passed the technical/media review is deliberately not
+ * sent to student client components.  The UI also checks the review status,
+ * but this projection prevents pending instructions or media metadata from
+ * being embedded in the React Server Component payload.
+ */
+function studentVisibleExercise(exercise: ExerciseRow): ExerciseRow {
+  if (exercise.visual_review_status === "approved") return exercise;
+  return {
+    ...exercise,
+    description: null,
+    secondary_muscles: [],
+    equipment: null,
+    difficulty: null,
+    instructions: null,
+    video_url: null,
+    image_url: null,
+    anatomy_image_url: null,
+    coaching_tip: null,
+    common_mistakes: null,
+    media_rights_note: null,
+    technical_reviewer: null,
+    visual_reviewed_by: null,
+    visual_reviewed_at: null
+  };
+}
+
 export async function getActivePlan(studentId: string) {
   const supabase = await client();
   const plan = checked((await supabase.from("workout_plans").select("*").eq("student_id", studentId).eq("status", "active").maybeSingle())) as WorkoutPlanRow | null;
@@ -33,18 +60,23 @@ export async function getDayExercises(dayId: string) {
   if (!prescribed.length) return [];
   const exercises = checked((await supabase.from("exercises").select("*").in("id", prescribed.map((item) => item.exercise_id)))) as ExerciseRow[];
   const byId = new Map(exercises.map((item) => [item.id, item]));
-  return prescribed.map((prescription) => ({ prescription, exercise: byId.get(prescription.exercise_id) ?? null }));
+  return prescribed.map((prescription) => {
+    const exercise = byId.get(prescription.exercise_id);
+    return { prescription, exercise: exercise ? studentVisibleExercise(exercise) : null };
+  });
 }
 
 export async function getAcademyExercises() {
   const supabase = await client();
-  return readPages<ExerciseRow>((from, to) => supabase.from("exercises").select("*").eq("visibility", "academy").eq("is_active", true).order("name").order("id").range(from, to));
+  const exercises = await readPages<ExerciseRow>((from, to) => supabase.from("exercises").select("*").eq("visibility", "academy").eq("is_active", true).order("name").order("id").range(from, to));
+  return exercises.map(studentVisibleExercise);
 }
 
 export async function getExercise(exerciseId: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(exerciseId)) return null;
   const supabase = await client();
-  return checked((await supabase.from("exercises").select("*").eq("id", exerciseId).maybeSingle())) as ExerciseRow | null;
+  const exercise = checked((await supabase.from("exercises").select("*").eq("id", exerciseId).maybeSingle())) as ExerciseRow | null;
+  return exercise ? studentVisibleExercise(exercise) : null;
 }
 
 export async function getFavoriteIds(studentId: string) {

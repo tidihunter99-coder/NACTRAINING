@@ -17,6 +17,7 @@
     "test:pwa": "node scripts/test-pwa.mjs",
     "test:exercise-player": "node scripts/test-exercise-player.mjs",
     "video:optimize": "node scripts/optimize-exercise-video.mjs",
+    "catalog:import-local": "node scripts/import-exercise-catalog.mjs",
     "test:mission15-audit": "node scripts/mission15-remote-audit.mjs --check",
     "test:mission15-consolidated": "node scripts/mission15-consolidated-readonly.mjs --verify"
   },

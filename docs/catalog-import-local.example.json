@@ -1,0 +1,13 @@
+{
+  "exercises": [
+    {
+      "name": "Nome oficial do exercício",
+      "muscle_group": "chest",
+      "secondary_muscles": [],
+      "equipment": "machines",
+      "difficulty": "beginner",
+      "description": "Descrição técnica fornecida pelo responsável.",
+      "instructions": "Instruções técnicas fornecidas pelo responsável."
+    }
+  ]
+}

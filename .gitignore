@@ -47,11 +47,18 @@ npm-debug.log*
 *.sql.gz
 *.pgpass
 
+# Official exercise media stays local until technical review and private Storage upload.
+/media/exercise-originals/
+/media/exercise-optimized/
+
 # Audit artifacts and authenticated exports contain security metadata. Keep them local.
 /supabase/audit/
 
 # Evidence remains local until it is manually redacted for publication.
 /docs/evidence/
+
+# Full authenticated catalog exports may include internal identifiers and media paths.
+/docs/catalog-remote-full.json
 
 # Local visual fixture has test credentials and must not be versioned.
 /scripts/mission10-visual-fixture.mjs

@@ -5,7 +5,9 @@ import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
 const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const evidenceDir = resolve("docs/evidence");
+// Browser checks create disposable screenshots. Keep them outside the synced
+// repository by default, avoiding OneDrive locks and dirty working trees.
+const evidenceDir = resolve(process.env.NAC_TEST_EVIDENCE_DIR ?? join(tmpdir(), "nac-test-evidence"));
 
 export async function verifyResponsive({ appUrl, cookies, sessionPath, paths, screenshotPaths, prefix = "mission-06" }) {
   if (process.env.NAC_SKIP_BROWSER_CHECK === "1") {

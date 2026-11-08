@@ -8,7 +8,7 @@ const usage = `Uso:
   npm run video:optimize -- --input <arquivo-origem> --output <arquivo.mp4> [--thumbnail <arquivo.webp>] [--keep-audio] [--dry-run]
 
 Converte um vídeo oficial local para MP4/H.264, preservando proporção, com
-largura máxima de 720px, CRF 23, preset slow e pronto para upload posterior
+  largura máxima de 720px, CRF 23, preset medium e pronto para upload posterior
 em Storage privado. Por padrão remove o áudio das demonstrações; use
 --keep-audio quando ele for necessário. O comando não envia arquivos, não
 sobrescreve saídas e não usa qualquer serviço externo.`;
@@ -69,7 +69,7 @@ const ffmpegArguments = [
   "-hide_banner", "-n", "-i", inputPath,
   "-map", "0:v:0", "-map", "0:a?",
   "-vf", "scale=w='min(720,iw)':h=-2:force_original_aspect_ratio=decrease",
-  "-c:v", "libx264", "-preset", "slow", "-crf", "23", "-pix_fmt", "yuv420p",
+  "-c:v", "libx264", "-preset", "medium", "-crf", "23", "-pix_fmt", "yuv420p",
   ...audioArguments, "-movflags", "+faststart",
   outputPath,
 ];
